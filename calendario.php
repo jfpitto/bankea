@@ -11,8 +11,6 @@ function obtenerDatosMes($conexion, $mes, $año) {
                 COUNT(*) as total,
                 SUM(CASE WHEN tipo = 'buy' THEN 1 ELSE 0 END) as compras,
                 SUM(CASE WHEN tipo = 'sell' THEN 1 ELSE 0 END) as ventas,
-                SUM(CASE WHEN tipo = 'buy' THEN precio ELSE 0 END) as total_compras_precio,
-                SUM(CASE WHEN tipo = 'sell' THEN precio ELSE 0 END) as total_ventas_precio,
                 SUM(beneficio) as beneficio,
                 GROUP_CONCAT(DISTINCT simbolo) as simbolos
               FROM operaciones
@@ -55,21 +53,18 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
     <title>Calendario de Operaciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
     .calendar-day {
         border-radius: 6px;
         padding: 6px;
         height: 100%;
-        min-height: 90px;
+        min-height: 80px;
         background-color: #f8f9fa;
         transition: all 0.2s;
         display: flex;
         flex-direction: column;
         border: 1px solid #e9ecef;
         cursor: pointer;
-        font-size: 0.85rem;
     }
 
     .calendar-day.empty {
@@ -106,26 +101,32 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
     .day-number {
         font-weight: 600;
         margin-bottom: 4px;
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
-    .badges-container {
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-bottom: 4px;
+    .day-info {
+        margin-top: auto;
     }
 
-    .small-price {
-        font-size: 0.75rem;
+    .day-benefit {
+        font-weight: 600;
+        font-size: 0.8rem;
+        margin-top: 3px;
         text-align: center;
-        color: #555;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
+    .legend-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .legend-color {
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        border-radius: 3px;
+        margin-right: 6px;
+    }
     </style>
 </head>
 <body>
@@ -206,42 +207,38 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
                         $clase_beneficio = 'day-neutral';
                     }
                     
-                    // Tooltip content
-                    $tooltip = '';
-                    if ($datos_dia) {
-                        $tooltip = 
-                            "Compras: {$datos_dia['compras']} (Valor: $" . number_format($datos_dia['total_compras_precio'], 2) . ")\n" .
-                            "Ventas: {$datos_dia['ventas']} (Valor: $" . number_format($datos_dia['total_ventas_precio'], 2) . ")\n" .
-                            "Beneficio: " . ($datos_dia['beneficio'] >= 0 ? '+' : '') . number_format($datos_dia['beneficio'], 2) . "\n" .
-                            "Símbolos: {$datos_dia['simbolos']}";
-                    } else {
-                        $tooltip = 'Sin datos';
-                    }
-                    
                     echo '<div class="col p-1">';
-                    echo '<div class="calendar-day '.($es_hoy ? 'today ' : '').$clase_beneficio.'" tabindex="0" role="button" data-bs-toggle="tooltip" data-bs-placement="top" title="'.htmlspecialchars($tooltip).'">';
+                    echo '<div class="calendar-day '.($es_hoy ? 'today ' : '').$clase_beneficio.'" data-dia="'.$dia.'" tabindex="0" role="button" aria-label="Operaciones del día '.$dia.'">';
                     echo '<div class="day-number">'.$dia.'</div>';
                     
                     if ($datos_dia) {
-                        echo '<div class="badges-container">';
-                        echo '<span class="badge bg-success" title="Compras">C: '.$datos_dia['compras'].'</span>';
-                        echo '<span class="badge bg-danger" title="Ventas">V: '.$datos_dia['ventas'].'</span>';
+                        echo '<div class="day-info">';
+                        echo '<div class="d-flex justify-content-between small">';
+                        echo '<span class="badge bg-success" title="Compras">'.$datos_dia['compras'].'</span>';
+                        echo '<span class="badge bg-danger" title="Ventas">'.$datos_dia['ventas'].'</span>';
                         echo '</div>';
-                        echo '<div class="small-price text-center">';
-                        echo 'C: $'.number_format($datos_dia['total_compras_precio'], 0).' / V: $'.number_format($datos_dia['total_ventas_precio'], 0);
+                        
+                        if ($datos_dia['beneficio'] != 0) {
+                            $signo = $datos_dia['beneficio'] > 0 ? '+' : '';
+                            $clase = $datos_dia['beneficio'] > 0 ? 'text-success' : 'text-danger';
+                            echo '<div class="day-benefit '.$clase.'">'.$signo.number_format($datos_dia['beneficio'], 2).'</div>';
+                        }
+                        
                         echo '</div>';
-                    } else {
-                        echo '<div class="text-muted small mt-auto">-</div>';
                     }
                     
                     echo '</div></div>';
+                    
+                    // Nueva fila cada 7 días
+                    if (($dia + $primer_dia_semana - 1) % 7 == 0) {
+                        echo '</div><div class="row g-1">';
+                    }
                 }
-                
-                // Días vacíos al final para completar la semana
-                $total_celdas = $primer_dia_semana - 1 + $dias_mes;
-                $restantes = 7 - ($total_celdas % 7);
-                if ($restantes < 7) {
-                    for ($i = 0; $i < $restantes; $i++) {
+
+                // Rellenar la última fila con vacíos si es necesario
+                $ultimo_dia_semana = ($dias_mes + $primer_dia_semana - 1) % 7;
+                if ($ultimo_dia_semana != 0) {
+                    for ($i = $ultimo_dia_semana + 1; $i <= 7; $i++) {
                         echo '<div class="col p-1"><div class="calendar-day empty"></div></div>';
                     }
                 }
@@ -250,51 +247,45 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
         </div>
     </div>
 
-    <div class="mt-3">
-        <h6>Leyenda:</h6>
-        <div class="legend-item"><span class="legend-color" style="background:#d1e7dd; border-bottom:4px solid #198754;"></span> Beneficio positivo</div>
-        <div class="legend-item"><span class="legend-color" style="background:#f8d7da; border-bottom:4px solid #dc3545;"></span> Pérdida</div>
-        <div class="legend-item"><span class="legend-color" style="background:#cfe2ff; border-bottom:4px solid #0d6efd;"></span> Beneficio neutro</div>
+    <!-- Leyenda -->
+    <div class="mt-3 d-flex justify-content-center gap-4 small text-muted">
+        <div class="legend-item"><span class="legend-color" style="background-color:#198754;"></span> Beneficio positivo</div>
+        <div class="legend-item"><span class="legend-color" style="background-color:#dc3545;"></span> Pérdida</div>
+        <div class="legend-item"><span class="legend-color" style="background-color:#0d6efd;"></span> Beneficio cero</div>
+        <div class="legend-item"><span class="legend-color border border-2 border-primary"></span> Día actual</div>
     </div>
-
 </div>
 
 <script>
-    // Inicializar tooltips de Bootstrap
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, {
-            trigger: 'hover focus',
-            container: 'body',
-            delay: { "show": 250, "hide": 100 }
-        });
+$(function() {
+    // Navegar meses con botones
+    $('.prev-month').click(function() {
+        let mes = <?= $mes_actual ?>;
+        let ano = <?= $año_actual ?>;
+        mes--;
+        if (mes < 1) {
+            mes = 12;
+            ano--;
+        }
+        window.location.href = `?mes=${mes}&ano=${ano}`;
     });
 
-    $(function(){
-        $('.prev-month').click(function(){
-            let mes = <?= $mes_actual ?>;
-            let ano = <?= $año_actual ?>;
-            mes--;
-            if(mes < 1) {
-                mes = 12;
-                ano--;
-            }
-            window.location.href = '?mes=' + mes + '&ano=' + ano;
-        });
-        $('.next-month').click(function(){
-            let mes = <?= $mes_actual ?>;
-            let ano = <?= $año_actual ?>;
-            mes++;
-            if(mes > 12) {
-                mes = 1;
-                ano++;
-            }
-            window.location.href = '?mes=' + mes + '&ano=' + ano;
-        });
-        $('.btn-hoy').click(function(){
-            window.location.href = '?mes=<?= date('n') ?>&ano=<?= date('Y') ?>';
-        });
+    $('.next-month').click(function() {
+        let mes = <?= $mes_actual ?>;
+        let ano = <?= $año_actual ?>;
+        mes++;
+        if (mes > 12) {
+            mes = 1;
+            ano++;
+        }
+        window.location.href = `?mes=${mes}&ano=${ano}`;
     });
+
+    $('.btn-hoy').click(function() {
+        window.location.href = `?mes=<?= date('n') ?>&ano=<?= date('Y') ?>`;
+    });
+});
 </script>
+
 </body>
 </html>
