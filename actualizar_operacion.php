@@ -18,15 +18,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Obtener y validar datos
 $id = isset($_POST['id']) ? intval($_POST['id']) : null;
-$valido = $_POST['valido'] ?? null;
+$valido = strtolower($_POST['valido'] ?? '');
 
-if (!$id || !in_array($valido, ['SI', 'NO'])) {
-    echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+// Validar que el valor sea 'sí' o 'no'
+if (!$id || !in_array($valido, ['sí', 'no'])) {
+    echo json_encode(['success' => false, 'message' => 'Datos inválidos: debe usar "sí" o "no"']);
     exit;
 }
 
 try {
-    // Preparar y ejecutar la consulta de actualización
+    // Verificar que el registro existe y pertenece al usuario
+    $check = $conexion->prepare("SELECT id FROM operaciones WHERE id = ? AND id_usuario = ?");
+    $check->bind_param("ii", $id, $_SESSION['idUsuario']);
+    $check->execute();
+    $check->store_result();
+
+    if ($check->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'El registro no existe o no pertenece al usuario']);
+        exit;
+    }
+
+    // Ejecutar actualización
     $stmt = $conexion->prepare("UPDATE operaciones SET valido = ? WHERE id = ? AND id_usuario = ?");
     $stmt->bind_param("sii", $valido, $id, $_SESSION['idUsuario']);
     $stmt->execute();
@@ -34,7 +46,7 @@ try {
     if ($stmt->affected_rows > 0) {
         echo json_encode(['success' => true, 'message' => 'Registro actualizado correctamente']);
     } else {
-        echo json_encode(['success' => false, 'message' => 'No se encontró el registro o no hubo cambios']);
+        echo json_encode(['success' => true, 'message' => 'No se realizaron cambios (mismo valor)']);
     }
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Error en la base de datos: ' . $e->getMessage()]);
