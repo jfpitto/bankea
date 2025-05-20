@@ -18,11 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Obtener y validar datos
 $id = isset($_POST['id']) ? intval($_POST['id']) : null;
-$valido = strtolower($_POST['valido'] ?? '');
+$valido = strtolower(trim($_POST['valido'] ?? ''));
 
 // Validar que el valor sea 'sí' o 'no'
 if (!$id || !in_array($valido, ['sí', 'no'])) {
-    echo json_encode(['success' => false, 'message' => 'Datos inválidos: debe usar "sí" o "no"']);
+    echo json_encode(['success' => false, 'message' => 'Datos inválidos: se espera "sí" o "no"']);
     exit;
 }
 
@@ -46,7 +46,7 @@ try {
     if ($stmt->affected_rows > 0) {
         echo json_encode(['success' => true, 'message' => 'Registro actualizado correctamente']);
     } else {
-        echo json_encode(['success' => true, 'message' => 'No se realizaron cambios (mismo valor)']);
+        echo json_encode(['success' => true, 'message' => 'No se realizaron cambios (el valor ya era el mismo)']);
     }
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Error en la base de datos: ' . $e->getMessage()]);
