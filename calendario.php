@@ -213,10 +213,16 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
                     
                     if ($datos_dia) {
                         echo '<div class="day-info">';
-                        echo '<div class="d-flex justify-content-between small">';
-                        echo '<span class="badge bg-success" title="Compras">'.$datos_dia['compras'].'</span>';
-                        echo '<span class="badge bg-danger" title="Ventas">'.$datos_dia['ventas'].'</span>';
-                        echo '</div>';
+                        
+                        // Mostrar solo el total del tipo (compras o ventas) que fue mayor
+                        if ($datos_dia['compras'] > $datos_dia['ventas']) {
+                            echo '<span class="badge bg-success" title="Total Compras">'.$datos_dia['compras'].'</span>';
+                        } elseif ($datos_dia['ventas'] > $datos_dia['compras']) {
+                            echo '<span class="badge bg-danger" title="Total Ventas">'.$datos_dia['ventas'].'</span>';
+                        } else {
+                            // En caso de empate
+                            echo '<span class="badge bg-secondary" title="Compras y Ventas iguales">'.$datos_dia['compras'].'</span>';
+                        }
                         
                         if ($datos_dia['beneficio'] != 0) {
                             $signo = $datos_dia['beneficio'] > 0 ? '+' : '';
@@ -249,43 +255,39 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
 
     <!-- Leyenda -->
     <div class="mt-3 d-flex justify-content-center gap-4 small text-muted">
-        <div class="legend-item"><span class="legend-color" style="background-color:#198754;"></span> Beneficio positivo</div>
-        <div class="legend-item"><span class="legend-color" style="background-color:#dc3545;"></span> Pérdida</div>
-        <div class="legend-item"><span class="legend-color" style="background-color:#0d6efd;"></span> Beneficio cero</div>
-        <div class="legend-item"><span class="legend-color border border-2 border-primary"></span> Día actual</div>
+        <div class="legend-item"><span class="legend-color" style="background:#d1e7dd; border-bottom:4px solid #198754;"></span> Beneficio positivo</div>
+        <div class="legend-item"><span class="legend-color" style="background:#f8d7da; border-bottom:4px solid #dc3545;"></span> Pérdida</div>
+        <div class="legend-item"><span class="legend-color" style="background:#cfe2ff; border-bottom:4px solid #0d6efd;"></span> Beneficio neutro</div>
     </div>
+
 </div>
 
 <script>
-$(function() {
-    // Navegar meses con botones
-    $('.prev-month').click(function() {
+$(function(){
+    $('.prev-month').click(function(){
         let mes = <?= $mes_actual ?>;
         let ano = <?= $año_actual ?>;
         mes--;
-        if (mes < 1) {
+        if(mes < 1) {
             mes = 12;
             ano--;
         }
-        window.location.href = `?mes=${mes}&ano=${ano}`;
+        window.location.href = '?mes=' + mes + '&ano=' + ano;
     });
-
-    $('.next-month').click(function() {
+    $('.next-month').click(function(){
         let mes = <?= $mes_actual ?>;
         let ano = <?= $año_actual ?>;
         mes++;
-        if (mes > 12) {
+        if(mes > 12) {
             mes = 1;
             ano++;
         }
-        window.location.href = `?mes=${mes}&ano=${ano}`;
+        window.location.href = '?mes=' + mes + '&ano=' + ano;
     });
-
-    $('.btn-hoy').click(function() {
-        window.location.href = `?mes=<?= date('n') ?>&ano=<?= date('Y') ?>`;
+    $('.btn-hoy').click(function(){
+        window.location.href = '?mes=<?= date('n') ?>&ano=<?= date('Y') ?>';
     });
 });
 </script>
-
 </body>
 </html>
