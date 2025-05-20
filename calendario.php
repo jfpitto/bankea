@@ -11,6 +11,8 @@ function obtenerDatosMes($conexion, $mes, $año) {
                 COUNT(*) as total,
                 SUM(CASE WHEN tipo = 'buy' THEN 1 ELSE 0 END) as compras,
                 SUM(CASE WHEN tipo = 'sell' THEN 1 ELSE 0 END) as ventas,
+                SUM(CASE WHEN tipo = 'buy' THEN precio ELSE 0 END) as total_compras_precio,
+                SUM(CASE WHEN tipo = 'sell' THEN precio ELSE 0 END) as total_ventas_precio,
                 SUM(beneficio) as beneficio,
                 GROUP_CONCAT(DISTINCT simbolo) as simbolos
               FROM operaciones
@@ -58,7 +60,7 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
         border-radius: 6px;
         padding: 6px;
         height: 100%;
-        min-height: 80px;
+        min-height: 90px;
         background-color: #f8f9fa;
         transition: all 0.2s;
         display: flex;
@@ -104,14 +106,17 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
         font-size: 0.9rem;
     }
 
-    .day-info {
-        margin-top: auto;
+    .badges-container {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
     }
 
     .day-benefit {
         font-weight: 600;
         font-size: 0.8rem;
-        margin-top: 3px;
+        margin-top: 4px;
         text-align: center;
     }
 
@@ -212,39 +217,43 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
                     echo '<div class="day-number">'.$dia.'</div>';
                     
                     if ($datos_dia) {
-                        echo '<div class="day-info">';
-                        
-                        // Mostrar solo el total del tipo (compras o ventas) que fue mayor
-                        if ($datos_dia['compras'] > $datos_dia['ventas']) {
-                            echo '<span class="badge bg-success" title="Total Compras">'.$datos_dia['compras'].'</span>';
-                        } elseif ($datos_dia['ventas'] > $datos_dia['compras']) {
-                            echo '<span class="badge bg-danger" title="Total Ventas">'.$datos_dia['ventas'].'</span>';
-                        } else {
-                            // En caso de empate
-                            echo '<span class="badge bg-secondary" title="Compras y Ventas iguales">'.$datos_dia['compras'].'</span>';
-                        }
-                        
-                        if ($datos_dia['beneficio'] != 0) {
-                            $signo = $datos_dia['beneficio'] > 0 ? '+' : '';
-                            $clase = $datos_dia['beneficio'] > 0 ? 'text-success' : 'text-danger';
-                            echo '<div class="day-benefit '.$clase.'">'.$signo.number_format($datos_dia['beneficio'], 2).'</div>';
-                        }
-                        
+                        echo '<div class="badges-container" aria-label="Cantidad de compras y ventas">';
+                        echo '<span class="badge bg-success" title="Cantidad de compras">'.$datos_dia['compras'].'</span>';
+                        echo '<span class="badge bg-danger" title="Cantidad de ventas">'.$datos_dia['ventas'].'</span>';
                         echo '</div>';
+                        
+                        // Mostrar el valor total del tipo mayor
+                        if ($datos_dia['compras'] > $datos_dia['ventas']) {
+                            echo '<div class="day-benefit text-success" title="Valor total compras">';
+                            echo 'Compra: $'.number_format($datos_dia['total_compras_precio'], 2);
+                            echo '</div>';
+                        } elseif ($datos_dia['ventas'] > $datos_dia['compras']) {
+                            echo '<div class="day-benefit text-danger" title="Valor total ventas">';
+                            echo 'Venta: $'.number_format($datos_dia['total_ventas_precio'], 2);
+                            echo '</div>';
+                        } else { 
+                            // Empate: mostrar ambos
+                            echo '<div class="day-benefit text-primary" title="Valor total compra y venta">';
+                            echo 'Compra: $'.number_format($datos_dia['total_compras_precio'], 2).' / Venta: $'.number_format($datos_dia['total_ventas_precio'], 2);
+                            echo '</div>';
+                        }
+                        
+                        // Mostrar beneficio
+                        $signo = $datos_dia['beneficio'] > 0 ? '+' : '';
+                        $clase = $datos_dia['beneficio'] > 0 ? 'text-success' : ($datos_dia['beneficio'] < 0 ? 'text-danger' : 'text-primary');
+                        echo '<div class="day-benefit '.$clase.'">Beneficio: '.$signo.number_format($datos_dia['beneficio'], 2).'</div>';
+                    } else {
+                        echo '<div class="text-muted small mt-auto">Sin datos</div>';
                     }
                     
                     echo '</div></div>';
-                    
-                    // Nueva fila cada 7 días
-                    if (($dia + $primer_dia_semana - 1) % 7 == 0) {
-                        echo '</div><div class="row g-1">';
-                    }
                 }
-
-                // Rellenar la última fila con vacíos si es necesario
-                $ultimo_dia_semana = ($dias_mes + $primer_dia_semana - 1) % 7;
-                if ($ultimo_dia_semana != 0) {
-                    for ($i = $ultimo_dia_semana + 1; $i <= 7; $i++) {
+                
+                // Días vacíos al final para completar la semana
+                $total_celdas = $primer_dia_semana - 1 + $dias_mes;
+                $restantes = 7 - ($total_celdas % 7);
+                if ($restantes < 7) {
+                    for ($i = 0; $i < $restantes; $i++) {
                         echo '<div class="col p-1"><div class="calendar-day empty"></div></div>';
                     }
                 }
@@ -253,8 +262,8 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
         </div>
     </div>
 
-    <!-- Leyenda -->
-    <div class="mt-3 d-flex justify-content-center gap-4 small text-muted">
+    <div class="mt-3">
+        <h6>Leyenda:</h6>
         <div class="legend-item"><span class="legend-color" style="background:#d1e7dd; border-bottom:4px solid #198754;"></span> Beneficio positivo</div>
         <div class="legend-item"><span class="legend-color" style="background:#f8d7da; border-bottom:4px solid #dc3545;"></span> Pérdida</div>
         <div class="legend-item"><span class="legend-color" style="background:#cfe2ff; border-bottom:4px solid #0d6efd;"></span> Beneficio neutro</div>
