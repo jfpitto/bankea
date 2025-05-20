@@ -19,6 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id = isset($_POST['id']) ? intval($_POST['id']) : null;
 $valido = strtolower(trim($_POST['valido'] ?? ''));
 
+if ($valido === 'si') {
+    $valido = 'sí'; // Corrige para coincidir con el ENUM
+}
+
 if (!$id || !in_array($valido, ['sí', 'no'])) {
     echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
     exit;
