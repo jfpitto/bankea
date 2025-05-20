@@ -55,6 +55,8 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
     <title>Calendario de Operaciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
     .calendar-day {
         border-radius: 6px;
@@ -67,6 +69,7 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
         flex-direction: column;
         border: 1px solid #e9ecef;
         cursor: pointer;
+        font-size: 0.85rem;
     }
 
     .calendar-day.empty {
@@ -103,7 +106,7 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
     .day-number {
         font-weight: 600;
         margin-bottom: 4px;
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     .badges-container {
@@ -111,27 +114,18 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
         justify-content: center;
         gap: 6px;
         flex-wrap: wrap;
+        margin-bottom: 4px;
     }
 
-    .day-benefit {
-        font-weight: 600;
-        font-size: 0.8rem;
-        margin-top: 4px;
+    .small-price {
+        font-size: 0.75rem;
         text-align: center;
+        color: #555;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .legend-item {
-        display: flex;
-        align-items: center;
-    }
-
-    .legend-color {
-        display: inline-block;
-        width: 15px;
-        height: 15px;
-        border-radius: 3px;
-        margin-right: 6px;
-    }
     </style>
 </head>
 <body>
@@ -212,38 +206,32 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
                         $clase_beneficio = 'day-neutral';
                     }
                     
+                    // Tooltip content
+                    $tooltip = '';
+                    if ($datos_dia) {
+                        $tooltip = 
+                            "Compras: {$datos_dia['compras']} (Valor: $" . number_format($datos_dia['total_compras_precio'], 2) . ")\n" .
+                            "Ventas: {$datos_dia['ventas']} (Valor: $" . number_format($datos_dia['total_ventas_precio'], 2) . ")\n" .
+                            "Beneficio: " . ($datos_dia['beneficio'] >= 0 ? '+' : '') . number_format($datos_dia['beneficio'], 2) . "\n" .
+                            "Símbolos: {$datos_dia['simbolos']}";
+                    } else {
+                        $tooltip = 'Sin datos';
+                    }
+                    
                     echo '<div class="col p-1">';
-                    echo '<div class="calendar-day '.($es_hoy ? 'today ' : '').$clase_beneficio.'" data-dia="'.$dia.'" tabindex="0" role="button" aria-label="Operaciones del día '.$dia.'">';
+                    echo '<div class="calendar-day '.($es_hoy ? 'today ' : '').$clase_beneficio.'" tabindex="0" role="button" data-bs-toggle="tooltip" data-bs-placement="top" title="'.htmlspecialchars($tooltip).'">';
                     echo '<div class="day-number">'.$dia.'</div>';
                     
                     if ($datos_dia) {
-                        echo '<div class="badges-container" aria-label="Cantidad de compras y ventas">';
-                        echo '<span class="badge bg-success" title="Cantidad de compras">'.$datos_dia['compras'].'</span>';
-                        echo '<span class="badge bg-danger" title="Cantidad de ventas">'.$datos_dia['ventas'].'</span>';
+                        echo '<div class="badges-container">';
+                        echo '<span class="badge bg-success" title="Compras">C: '.$datos_dia['compras'].'</span>';
+                        echo '<span class="badge bg-danger" title="Ventas">V: '.$datos_dia['ventas'].'</span>';
                         echo '</div>';
-                        
-                        // Mostrar el valor total del tipo mayor
-                        if ($datos_dia['compras'] > $datos_dia['ventas']) {
-                            echo '<div class="day-benefit text-success" title="Valor total compras">';
-                            echo 'Compra: $'.number_format($datos_dia['total_compras_precio'], 2);
-                            echo '</div>';
-                        } elseif ($datos_dia['ventas'] > $datos_dia['compras']) {
-                            echo '<div class="day-benefit text-danger" title="Valor total ventas">';
-                            echo 'Venta: $'.number_format($datos_dia['total_ventas_precio'], 2);
-                            echo '</div>';
-                        } else { 
-                            // Empate: mostrar ambos
-                            echo '<div class="day-benefit text-primary" title="Valor total compra y venta">';
-                            echo 'Compra: $'.number_format($datos_dia['total_compras_precio'], 2).' / Venta: $'.number_format($datos_dia['total_ventas_precio'], 2);
-                            echo '</div>';
-                        }
-                        
-                        // Mostrar beneficio
-                        $signo = $datos_dia['beneficio'] > 0 ? '+' : '';
-                        $clase = $datos_dia['beneficio'] > 0 ? 'text-success' : ($datos_dia['beneficio'] < 0 ? 'text-danger' : 'text-primary');
-                        echo '<div class="day-benefit '.$clase.'">Beneficio: '.$signo.number_format($datos_dia['beneficio'], 2).'</div>';
+                        echo '<div class="small-price text-center">';
+                        echo 'C: $'.number_format($datos_dia['total_compras_precio'], 0).' / V: $'.number_format($datos_dia['total_ventas_precio'], 0);
+                        echo '</div>';
                     } else {
-                        echo '<div class="text-muted small mt-auto">Sin datos</div>';
+                        echo '<div class="text-muted small mt-auto">-</div>';
                     }
                     
                     echo '</div></div>';
@@ -272,31 +260,41 @@ $meses_es = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Ag
 </div>
 
 <script>
-$(function(){
-    $('.prev-month').click(function(){
-        let mes = <?= $mes_actual ?>;
-        let ano = <?= $año_actual ?>;
-        mes--;
-        if(mes < 1) {
-            mes = 12;
-            ano--;
-        }
-        window.location.href = '?mes=' + mes + '&ano=' + ano;
+    // Inicializar tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover focus',
+            container: 'body',
+            delay: { "show": 250, "hide": 100 }
+        });
     });
-    $('.next-month').click(function(){
-        let mes = <?= $mes_actual ?>;
-        let ano = <?= $año_actual ?>;
-        mes++;
-        if(mes > 12) {
-            mes = 1;
-            ano++;
-        }
-        window.location.href = '?mes=' + mes + '&ano=' + ano;
+
+    $(function(){
+        $('.prev-month').click(function(){
+            let mes = <?= $mes_actual ?>;
+            let ano = <?= $año_actual ?>;
+            mes--;
+            if(mes < 1) {
+                mes = 12;
+                ano--;
+            }
+            window.location.href = '?mes=' + mes + '&ano=' + ano;
+        });
+        $('.next-month').click(function(){
+            let mes = <?= $mes_actual ?>;
+            let ano = <?= $año_actual ?>;
+            mes++;
+            if(mes > 12) {
+                mes = 1;
+                ano++;
+            }
+            window.location.href = '?mes=' + mes + '&ano=' + ano;
+        });
+        $('.btn-hoy').click(function(){
+            window.location.href = '?mes=<?= date('n') ?>&ano=<?= date('Y') ?>';
+        });
     });
-    $('.btn-hoy').click(function(){
-        window.location.href = '?mes=<?= date('n') ?>&ano=<?= date('Y') ?>';
-    });
-});
 </script>
 </body>
 </html>
